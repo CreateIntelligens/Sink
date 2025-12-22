@@ -5,9 +5,6 @@
         <h1 class="mb-4 text-3xl font-bold text-gray-900 dark:text-white">
           創造智能科技股份有限公司
         </h1>
-        <p class="text-gray-600 dark:text-gray-400">
-          創造智能科技股份有限公司的統一編號（統編）是 90510433。這家公司由高明慧擔任代表人，地址在台北市內湖區舊宗路一段159號9樓。
-        </p>
       </div>
       
       <div class="space-y-4 border-t pt-6 dark:border-gray-700">
