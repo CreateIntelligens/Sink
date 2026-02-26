@@ -1,31 +1,103 @@
+<script setup>
+const { company } = useAppConfig()
+
+definePageMeta({
+  layout: false,
+})
+
+useHead({
+  title: company?.name ? `${company.name} - ${company.nameEnglish || ''}` : 'Company Profile',
+})
+</script>
+
 <template>
-  <main class="flex min-h-screen items-center justify-center bg-gray-50 px-4 dark:bg-gray-900">
-    <div class="max-w-2xl rounded-lg bg-white p-8 shadow-lg dark:bg-gray-800">
-      <div class="mb-6 text-center">
-        <h1 class="mb-4 text-3xl font-bold text-gray-900 dark:text-white">
-          創造智能科技股份有限公司
-        </h1>
-      </div>
-      
-      <div class="space-y-4 border-t pt-6 dark:border-gray-700">
-        <div class="flex justify-between border-b pb-3 dark:border-gray-700">
-          <span class="font-semibold text-gray-700 dark:text-gray-300">統一編號:</span>
-          <span class="text-gray-900 dark:text-white">90510433</span>
+  <main
+    class="
+      flex min-h-screen items-center justify-center bg-gradient-to-br
+      from-gray-50 to-gray-100
+      dark:from-gray-900 dark:to-gray-800
+    "
+  >
+    <div
+      class="
+        mx-4 max-w-2xl rounded-lg bg-white p-8 shadow-lg
+        dark:bg-gray-800
+      "
+    >
+      <h1
+        class="
+          mb-6 text-center text-3xl font-bold text-gray-900
+          dark:text-gray-100
+        "
+      >
+        {{ company?.name || 'Your Company Name' }}
+      </h1>
+      <h2
+        v-if="company?.nameEnglish" class="
+          mb-8 text-center text-xl font-semibold text-gray-700
+          dark:text-gray-300
+        "
+      >
+        {{ company.nameEnglish }}
+      </h2>
+      <div
+        class="
+          space-y-4 text-gray-700
+          dark:text-gray-300
+        "
+      >
+        <div
+          v-if="company?.taxId" class="
+            flex flex-col
+            md:flex-row md:items-center
+          "
+        >
+          <span
+            class="
+              mr-2 mb-1 font-semibold
+              md:mb-0
+            "
+          >統編 (Tax ID)：</span>
+          <span>{{ company.taxId }}</span>
         </div>
-        
-        <div class="flex justify-between border-b pb-3 dark:border-gray-700">
-          <span class="font-semibold text-gray-700 dark:text-gray-300">公司名稱:</span>
-          <span class="text-gray-900 dark:text-white">創造智能科技股份有限公司</span>
+        <div
+          v-if="company?.representative" class="
+            flex flex-col
+            md:flex-row md:items-center
+          "
+        >
+          <span
+            class="
+              mr-2 mb-1 font-semibold
+              md:mb-0
+            "
+          >代表人 (Representative)：</span>
+          <span>{{ company.representative }}</span>
         </div>
-        
-        <div class="flex justify-between border-b pb-3 dark:border-gray-700">
-          <span class="font-semibold text-gray-700 dark:text-gray-300">代表人:</span>
-          <span class="text-gray-900 dark:text-white">高明慧</span>
-        </div>
-        
-        <div class="flex justify-between">
-          <span class="font-semibold text-gray-700 dark:text-gray-300">地址:</span>
-          <span class="text-right text-gray-900 dark:text-white">台北市內湖區舊宗路1段159號9樓</span>
+        <div
+          v-if="company?.address || company?.addressEnglish" class="
+            flex flex-col
+          "
+        >
+          <span class="mb-2 font-semibold">地址 (Address)：</span>
+          <div
+            class="
+              ml-0 space-y-1
+              md:ml-4
+            "
+          >
+            <p v-if="company.address">
+              {{ company.address }}
+            </p>
+            <p
+              v-if="company.addressEnglish" class="
+                text-sm text-gray-600
+                dark:text-gray-400
+              "
+            >
+              {{ company.addressEnglish }}
+            </p>
+          </div>
         </div>
       </div>
     </div>

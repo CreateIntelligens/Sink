@@ -2,6 +2,7 @@
 import { LinkSchema, nanoid } from '@@/schemas/link'
 import { toTypedSchema } from '@vee-validate/zod'
 import { Shuffle, Sparkles } from 'lucide-vue-next'
+import { getQuery } from 'ufo'
 import { useForm } from 'vee-validate'
 import { toast } from 'vue-sonner'
 import { z } from 'zod'
@@ -37,6 +38,11 @@ const EditLinkSchema = LinkSchema.pick({
     image: true,
   }).extend({
     expiration: z.coerce.date().optional(),
+    utm_source: z.string().trim().max(2048).optional(),
+    utm_medium: z.string().trim().max(2048).optional(),
+    utm_campaign: z.string().trim().max(2048).optional(),
+    utm_term: z.string().trim().max(2048).optional(),
+    utm_content: z.string().trim().max(2048).optional(),
   }).optional(),
 })
 
@@ -47,6 +53,26 @@ const fieldConfig = {
   optional: {
     comment: {
       component: 'textarea',
+    },
+    utm_source: {
+      label: 'UTM Source',
+      description: 'e.g., google, newsletter4',
+    },
+    utm_medium: {
+      label: 'UTM Medium',
+      description: 'e.g., cpc, email',
+    },
+    utm_campaign: {
+      label: 'UTM Campaign',
+      description: 'e.g., spring_sale',
+    },
+    utm_term: {
+      label: 'UTM Term',
+      description: 'e.g., running+shoes',
+    },
+    utm_content: {
+      label: 'UTM Content',
+      description: 'e.g., logolink or textlink',
     },
   },
 }
@@ -60,6 +86,20 @@ const dependencies = [
   },
 ]
 
+function getInitialUTMs(urlStr) {
+  try {
+    const q = getQuery(urlStr || '')
+    return {
+      utm_source: q.utm_source || undefined,
+      utm_medium: q.utm_medium || undefined,
+      utm_campaign: q.utm_campaign || undefined,
+      utm_term: q.utm_term || undefined,
+      utm_content: q.utm_content || undefined,
+    }
+  }
+  catch { return {} }
+}
+
 const form = useForm({
   validationSchema: toTypedSchema(EditLinkSchema),
   initialValues: {
@@ -67,11 +107,80 @@ const form = useForm({
     url: link.value.url,
     optional: {
       comment: link.value.comment,
+      ...getInitialUTMs(link.value.url),
     },
   },
   validateOnMount: isEdit,
   keepValuesOnUnmount: isEdit,
 })
+
+watch(() => form.values.url, (newUrl) => {
+  if (!newUrl)
+    return
+  try {
+    const q = getQuery(newUrl)
+    if (q.utm_source !== form.values.optional?.utm_source)
+      form.setFieldValue('optional.utm_source', q.utm_source)
+    if (q.utm_medium !== form.values.optional?.utm_medium)
+      form.setFieldValue('optional.utm_medium', q.utm_medium)
+    if (q.utm_campaign !== form.values.optional?.utm_campaign)
+      form.setFieldValue('optional.utm_campaign', q.utm_campaign)
+    if (q.utm_term !== form.values.optional?.utm_term)
+      form.setFieldValue('optional.utm_term', q.utm_term)
+    if (q.utm_content !== form.values.optional?.utm_content)
+      form.setFieldValue('optional.utm_content', q.utm_content)
+  }
+  catch {}
+})
+
+watch(() => [
+  form.values.optional?.utm_source,
+  form.values.optional?.utm_medium,
+  form.values.optional?.utm_campaign,
+  form.values.optional?.utm_term,
+  form.values.optional?.utm_content,
+], ([source, medium, campaign, term, content]) => {
+  if (!form.values.url)
+    return
+  try {
+    const urlObj = new URL(form.values.url)
+    if (source) {
+      urlObj.searchParams.set('utm_source', source.trim())
+    }
+    else {
+      urlObj.searchParams.delete('utm_source')
+    }
+    if (medium) {
+      urlObj.searchParams.set('utm_medium', medium.trim())
+    }
+    else {
+      urlObj.searchParams.delete('utm_medium')
+    }
+    if (campaign) {
+      urlObj.searchParams.set('utm_campaign', campaign.trim())
+    }
+    else {
+      urlObj.searchParams.delete('utm_campaign')
+    }
+    if (term) {
+      urlObj.searchParams.set('utm_term', term.trim())
+    }
+    else {
+      urlObj.searchParams.delete('utm_term')
+    }
+    if (content) {
+      urlObj.searchParams.set('utm_content', content.trim())
+    }
+    else {
+      urlObj.searchParams.delete('utm_content')
+    }
+    const newUrlString = urlObj.toString()
+    if (form.values.url !== newUrlString) {
+      form.setFieldValue('url', newUrlString)
+    }
+  }
+  catch {}
+}, { deep: true })
 
 function randomSlug() {
   form.setFieldValue('slug', nanoid()())

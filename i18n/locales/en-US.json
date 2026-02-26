@@ -137,7 +137,10 @@
       "deviceType": "Device Type",
       "os": "OS",
       "browser": "Browser",
-      "browserType": "Browser Type"
+      "browserType": "Browser Type",
+      "utm_source": "UTM Source",
+      "utm_medium": "UTM Medium",
+      "utm_campaign": "UTM Campaign"
     },
     "time_picker": {
       "today": "Today",

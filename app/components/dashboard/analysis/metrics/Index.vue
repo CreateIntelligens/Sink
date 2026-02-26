@@ -2,6 +2,7 @@
 const { t } = useI18n()
 
 const tabs = {
+  utm: ['utm_source', 'utm_medium', 'utm_campaign'],
   location: ['country', 'region', 'city'],
   referer: ['referer', 'slug'],
   time: ['language', 'timezone'],
@@ -10,6 +11,7 @@ const tabs = {
 }
 
 const translatedTabs = computed(() => ({
+  utm: tabs.utm.map(tab => t(`dashboard.metrics.${tab}`)),
   location: tabs.location.map(tab => t(`dashboard.metrics.${tab}`)),
   referer: tabs.referer.map(tab => t(`dashboard.metrics.${tab}`)),
   time: tabs.time.map(tab => t(`dashboard.metrics.${tab}`)),
@@ -55,6 +57,11 @@ const translatedTabs = computed(() => ({
       class="lg:col-span-6"
       :tabs="translatedTabs.browser"
       :raw-tabs="tabs.browser"
+    />
+    <DashboardAnalysisMetricsGroup
+      class="lg:col-span-12"
+      :tabs="translatedTabs.utm"
+      :raw-tabs="tabs.utm"
     />
   </main>
 </template>

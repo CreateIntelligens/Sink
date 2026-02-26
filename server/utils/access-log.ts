@@ -11,7 +11,7 @@ import {
   MediaPlayers,
   Vehicles,
 } from 'ua-parser-js/extensions'
-import { parseURL } from 'ufo'
+import { getQuery, parseURL, withQuery } from 'ufo'
 import { getFlag } from '@/utils/flag'
 
 function toBlobNumber(blob: string) {
@@ -35,6 +35,10 @@ export const blobsMap = {
   blob14: 'device',
   blob15: 'deviceType',
   blob16: 'COLO',
+  blob17: 'utm_source',
+  blob18: 'utm_medium',
+  blob19: 'utm_campaign',
+  blob20: 'utm_term',
 } as const
 
 export const doublesMap = {
@@ -125,6 +129,11 @@ export function useAccessLog(event: H3Event) {
 
   const regionNames = new Intl.DisplayNames(['en'], { type: 'region' })
   const countryName = regionNames.of(cf?.country || 'WD') // fallback to "Worldwide"
+
+  const { redirectWithQuery } = useRuntimeConfig(event)
+  const target = redirectWithQuery && link.url ? withQuery(link.url, getQuery(event.path)) : link.url
+  const parsedQuery = target ? getQuery(target) : {}
+
   const accessLogs = {
     url: link.url,
     slug: link.slug,
@@ -142,6 +151,10 @@ export function useAccessLog(event: H3Event) {
     device: uaInfo?.device?.model,
     deviceType: uaInfo?.device?.type,
     COLO: cf?.colo,
+    utm_source: parsedQuery.utm_source as string | undefined,
+    utm_medium: parsedQuery.utm_medium as string | undefined,
+    utm_campaign: parsedQuery.utm_campaign as string | undefined,
+    utm_term: (parsedQuery.utm_term || parsedQuery.utm_content) as string | undefined,
 
     // For RealTime Globe
     latitude: Number(cf?.latitude || getHeader(event, 'cf-iplatitude') || 0),

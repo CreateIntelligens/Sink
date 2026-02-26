@@ -54,13 +54,7 @@
 - **🪄 AI Slug:** Leverage AI to generate slugs.
 - **Link Expiration:** Set expiration dates for your links.
 
-## 🪧 Demo
 
-Experience the demo at [Sink.Cool](https://sink.cool/dashboard). Log in using the Site Token below:
-
-```txt
-Site Token: SinkCool
-```
 
 <details>
   <summary><b>Screenshots</b></summary>
@@ -78,29 +72,33 @@ Site Token: SinkCool
 - **Styling:** [Tailwind CSS](https://tailwindcss.com/)
 - **Deployment**: [Cloudflare](https://www.cloudflare.com/)
 
-## 🚗 Roadmap [WIP]
 
-We welcome your contributions and PRs.
-
-- [x] Browser Extension - [Sink Tool](https://github.com/zhuzhuyule/sink-extension)
-- [x] Chrome Extension - [Sink Quick Shorten](https://chromewebstore.google.com/detail/sink-quick-shorten/emlojomjpenjgkaphajcokijobpkejih)
-- [x] Raycast Extension - [Raycast-Sink](https://github.com/foru17/raycast-sink)
-- [x] Apple Shortcuts - [Sink Shortcuts](https://s.search1api.com/sink001)
-- [x] iOS App - [Sink](https://apps.apple.com/app/id6745417598)
-- [ ] Enhanced Link Management (with Cloudflare D1)
-- [ ] Analytics Enhancements (Support for merging filter conditions)
-- [ ] Dashboard Performance Optimization (Infinite loading)
-- [ ] Units Test
 
 ## 🏗️ Deployment
 
-> Video tutorial: [Watch here](https://www.youtube.com/watch?v=MkU23U2VE9E)
 
-We currently support deployment to [Cloudflare Workers](./docs/deployment/workers.md) (recommended) and [Cloudflare Pages](./docs/deployment/pages.md).
 
 ## ⚒️ Configuration
 
 [Configuration Docs](./docs/configuration.md)
+
+### Brand & Company Settings
+You can easily customize the brand identity of your Sink instance (e.g., Company Name, Tax ID, Address, Footer links). 
+To edit these settings, modify the `app/app.config.ts` file. For example:
+
+```ts
+// app/app.config.ts
+export default defineAppConfig({
+  company: {
+    name: 'Your Company Name',
+    nameEnglish: 'Your Company English Name',
+    taxId: '88888888',
+    representative: 'John Doe',
+    address: 'Your Address',
+    addressEnglish: 'Your Address in English'
+  }
+})
+```
 
 ## 🔌 API
 
@@ -141,8 +139,3 @@ We currently do not support native MCP Server, but we have OpenAPI documentation
 1. [**Cloudflare**](https://www.cloudflare.com/)
 2. [**NuxtHub**](https://hub.nuxt.com/)
 3. [**Astroship**](https://astroship.web3templates.com/)
-
-## ☕ Sponsor
-
-1. [Follow Me on X(Twitter)](https://404.li/kai).
-2. [Become a sponsor to on GitHub](https://github.com/sponsors/miantiao-me).
