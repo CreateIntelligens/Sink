@@ -82,6 +82,13 @@
 
 [Configuration Docs](./docs/configuration.md)
 
+### Multiple Site Tokens
+If you need to share access with multiple colleagues, you can configure multiple passwords. Set the `NUXT_SITE_TOKEN` environment variable as a comma-separated list of tokens. Anyone using a token from this list will be able to log in.
+
+```bash
+NUXT_SITE_TOKEN="Token1,Token2,Token3"
+```
+
 ### Brand & Company Settings
 You can easily customize the brand identity of your Sink instance (e.g., Company Name, Tax ID, Address, Footer links). 
 To edit these settings, modify the `app/app.config.ts` file. For example:
