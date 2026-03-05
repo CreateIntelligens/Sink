@@ -1,10 +1,10 @@
 export default defineAppConfig({
-  title: 'glsoft.ai',
+  title: 'aiurl.tw',
   email: 'ok@vip.david888.com',
   github: 'https://github.com/tbdavid2019/sink',
   twitter: 'https://x.com/oobwei',
   telegram: 'https://t.me/a6a7a8a9abc',
-  discord: 'https://discord.gg/sink',
+  discord: 'https://discord.gg/gwCRKqqnBV',
   blog: 'https://blog.david888.com',
   description: '短網址e.',
   image: 'https://blog.david888.com/banner.png',
