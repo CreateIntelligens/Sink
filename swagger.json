@@ -146,7 +146,7 @@
                     },
                     "shortLink": {
                       "type": "string",
-                      "example": "https://glsoft.ai/abc123"
+                      "example": "https://aiurl.tw/abc123"
                     }
                   }
                 }
