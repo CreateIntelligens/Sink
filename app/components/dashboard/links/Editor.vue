@@ -54,6 +54,15 @@ const fieldConfig = {
     comment: {
       component: 'textarea',
     },
+    transitionMode: {
+      label: 'Interstitial Page Mode',
+      description: 'Choose whether to show the transition/warning page. "Inherit" uses the global settings.',
+    },
+    transitionHtml: {
+      component: 'textarea',
+      label: 'Transition Page HTML',
+      description: 'Custom HTML to display on the transition page (e.g. advertisements, safety notices, or site info).',
+    },
     utm_source: {
       label: 'UTM Source',
       description: 'e.g., google, newsletter4',
@@ -84,6 +93,12 @@ const dependencies = [
     targetField: 'slug',
     when: () => isEdit,
   },
+  {
+    sourceField: 'optional.transitionMode',
+    type: DependencyType.HIDES,
+    targetField: 'optional.transitionHtml',
+    when: mode => mode === 'off',
+  },
 ]
 
 function getInitialUTMs(urlStr) {
@@ -107,6 +122,8 @@ const form = useForm({
     url: link.value.url,
     optional: {
       comment: link.value.comment,
+      transitionMode: link.value.transitionMode || 'inherit',
+      transitionHtml: link.value.transitionHtml || '',
       ...getInitialUTMs(link.value.url),
     },
   },
@@ -217,6 +234,8 @@ async function onSubmit(formData) {
     url: formData.url,
     slug: formData.slug,
     ...(formData.optional || []),
+    transitionMode: formData.optional?.transitionMode || 'inherit',
+    transitionHtml: formData.optional?.transitionHtml || '',
     expiration: formData.optional?.expiration ? date2unix(formData.optional?.expiration, 'end') : undefined,
   }
   const { link: newLink } = await useAPI(isEdit ? '/api/link/edit' : '/api/link/create', {
