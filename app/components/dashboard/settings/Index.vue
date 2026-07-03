@@ -3,6 +3,13 @@ import { TransitionModeSchema } from '@@/schemas/settings'
 import { marked } from 'marked'
 import { toast } from 'vue-sonner'
 
+// Site SEO settings
+const seoTitle = ref('')
+const seoDescription = ref('')
+const seoImage = ref('')
+const seoSiteName = ref('')
+const loadingSeo = ref(false)
+
 // Enterprise settings
 const enabled = ref(false)
 const companyName = ref('')
@@ -16,7 +23,58 @@ const loadingTransition = ref(false)
 const transitionEnabled = computed(() => transitionMode.value !== 'disabled')
 const transitionModeOptions = TransitionModeSchema.options
 
-const loading = computed(() => loadingEnterprise.value || loadingTransition.value)
+// Tracking settings
+const trackingEnabled = ref(false)
+const gaMeasurementId = ref('')
+const metaPixelId = ref('')
+const lineLiffId = ref('')
+const lineChannelId = ref('')
+const requireLineLogin = ref(false)
+const redirectDelaySeconds = ref(5)
+const loadingTracking = ref(false)
+
+const loading = computed(() => loadingSeo.value || loadingEnterprise.value || loadingTransition.value || loadingTracking.value)
+
+async function fetchSeoSettings() {
+  loadingSeo.value = true
+  try {
+    const data = await useAPI('/api/public/settings/seo')
+    seoTitle.value = data?.title || ''
+    seoDescription.value = data?.description || ''
+    seoImage.value = data?.image || ''
+    seoSiteName.value = data?.siteName || ''
+  }
+  catch (error) {
+    console.error('Failed to fetch SEO settings:', error)
+    toast.error('Failed to load SEO settings')
+  }
+  finally {
+    loadingSeo.value = false
+  }
+}
+
+async function saveSeoSettings() {
+  loadingSeo.value = true
+  try {
+    await useAPI('/api/settings/seo', {
+      method: 'POST',
+      body: {
+        title: seoTitle.value,
+        description: seoDescription.value,
+        image: seoImage.value,
+        siteName: seoSiteName.value,
+      },
+    })
+    toast.success('SEO settings saved successfully')
+  }
+  catch (error) {
+    console.error('Failed to save SEO settings:', error)
+    toast.error('Failed to save SEO settings')
+  }
+  finally {
+    loadingSeo.value = false
+  }
+}
 
 async function fetchEnterpriseSettings() {
   loadingEnterprise.value = true
@@ -73,14 +131,48 @@ async function fetchTransitionSettings() {
   }
 }
 
+async function fetchTrackingSettings() {
+  loadingTracking.value = true
+  try {
+    const data = await useAPI('/api/public/settings/tracking')
+    trackingEnabled.value = data?.enabled || false
+    gaMeasurementId.value = data?.gaMeasurementId || ''
+    metaPixelId.value = data?.metaPixelId || ''
+    lineLiffId.value = data?.lineLiffId || ''
+    lineChannelId.value = data?.lineChannelId || ''
+    requireLineLogin.value = data?.requireLineLogin || false
+    redirectDelaySeconds.value = data?.redirectDelaySeconds || 5
+  }
+  catch (error) {
+    console.error('Failed to fetch tracking settings:', error)
+    toast.error('Failed to load tracking settings')
+  }
+  finally {
+    loadingTracking.value = false
+  }
+}
+
 async function saveTransitionSettings() {
   loadingTransition.value = true
+  loadingTracking.value = true
   try {
     await useAPI('/api/settings/transition', {
       method: 'POST',
       body: {
         mode: transitionMode.value,
         content: transitionContent.value,
+      },
+    })
+    await useAPI('/api/settings/tracking', {
+      method: 'POST',
+      body: {
+        enabled: trackingEnabled.value,
+        gaMeasurementId: gaMeasurementId.value,
+        metaPixelId: metaPixelId.value,
+        lineLiffId: lineLiffId.value,
+        lineChannelId: lineChannelId.value,
+        requireLineLogin: requireLineLogin.value,
+        redirectDelaySeconds: Number(redirectDelaySeconds.value || 5),
       },
     })
     toast.success('Transition settings saved successfully')
@@ -91,6 +183,7 @@ async function saveTransitionSettings() {
   }
   finally {
     loadingTransition.value = false
+    loadingTracking.value = false
   }
 }
 
@@ -113,8 +206,10 @@ const previewTransitionHtml = computed(() => {
 })
 
 onMounted(() => {
+  fetchSeoSettings()
   fetchEnterpriseSettings()
   fetchTransitionSettings()
+  fetchTrackingSettings()
 })
 </script>
 
@@ -123,10 +218,13 @@ onMounted(() => {
     <DashboardNav />
 
     <Tabs
-      default-value="enterprise"
+      default-value="seo"
       class="w-full"
     >
-      <TabsList class="grid max-w-[400px] grid-cols-2">
+      <TabsList class="grid max-w-[600px] grid-cols-3">
+        <TabsTrigger value="seo">
+          Site SEO
+        </TabsTrigger>
         <TabsTrigger value="enterprise">
           Enterprise Panel
         </TabsTrigger>
@@ -134,6 +232,147 @@ onMounted(() => {
           Transition Page
         </TabsTrigger>
       </TabsList>
+
+      <TabsContent
+        value="seo"
+        class="mt-6"
+      >
+        <Card
+          class="
+            overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-md
+            dark:border-zinc-800 dark:bg-zinc-900
+          "
+        >
+          <CardHeader
+            class="
+              border-b border-zinc-200 px-6 py-4
+              dark:border-zinc-800
+            "
+          >
+            <CardTitle class="text-xl font-bold tracking-tight">
+              Site SEO & Open Graph Settings
+            </CardTitle>
+            <CardDescription
+              class="
+                text-zinc-500
+                dark:text-zinc-400
+              "
+            >
+              Configure the public title, description, and social sharing preview used by the site.
+            </CardDescription>
+          </CardHeader>
+
+          <CardContent
+            class="
+              grid grid-cols-1 gap-4 p-6
+              lg:grid-cols-2
+            "
+          >
+            <div class="space-y-2">
+              <label class="text-sm font-semibold tracking-wide">Site Title</label>
+              <input
+                v-model="seoTitle"
+                type="text"
+                class="
+                  w-full rounded-xl border border-zinc-200 bg-zinc-50 p-3
+                  text-sm
+                  focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500
+                  focus:outline-none
+                  dark:border-zinc-800 dark:bg-zinc-950
+                "
+                placeholder="e.g., 888短網址系統"
+                :disabled="loading"
+              >
+            </div>
+
+            <div class="space-y-2">
+              <label class="text-sm font-semibold tracking-wide">OG Site Name</label>
+              <input
+                v-model="seoSiteName"
+                type="text"
+                class="
+                  w-full rounded-xl border border-zinc-200 bg-zinc-50 p-3
+                  text-sm
+                  focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500
+                  focus:outline-none
+                  dark:border-zinc-800 dark:bg-zinc-950
+                "
+                placeholder="Leave empty to use Site Title"
+                :disabled="loading"
+              >
+            </div>
+
+            <div
+              class="
+                space-y-2
+                lg:col-span-2
+              "
+            >
+              <label class="text-sm font-semibold tracking-wide">Description</label>
+              <textarea
+                v-model="seoDescription"
+                class="
+                  min-h-24 w-full resize-y rounded-xl border border-zinc-200
+                  bg-zinc-50 p-3 text-sm
+                  focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500
+                  focus:outline-none
+                  dark:border-zinc-800 dark:bg-zinc-950
+                "
+                placeholder="Short description shown in search results and social previews."
+                :disabled="loading"
+              />
+            </div>
+
+            <div
+              class="
+                space-y-2
+                lg:col-span-2
+              "
+            >
+              <label class="text-sm font-semibold tracking-wide">OG / Twitter Image URL</label>
+              <input
+                v-model="seoImage"
+                type="url"
+                class="
+                  w-full rounded-xl border border-zinc-200 bg-zinc-50 p-3
+                  text-sm
+                  focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500
+                  focus:outline-none
+                  dark:border-zinc-800 dark:bg-zinc-950
+                "
+                placeholder="https://example.com/og-image.png"
+                :disabled="loading"
+              >
+            </div>
+          </CardContent>
+
+          <CardFooter
+            class="
+              flex justify-end border-t border-zinc-200 px-6 py-4
+              dark:border-zinc-800
+            "
+          >
+            <Button
+              :disabled="loading"
+              class="
+                bg-emerald-500 px-6 py-2 font-medium text-white shadow-sm
+                transition
+                hover:bg-emerald-600
+                dark:bg-emerald-600 dark:hover:bg-emerald-500
+              "
+              @click="saveSeoSettings"
+            >
+              <span
+                v-if="loadingSeo" class="
+                  mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white
+                  border-t-transparent
+                "
+              />
+              Save Settings
+            </Button>
+          </CardFooter>
+        </Card>
+      </TabsContent>
 
       <!-- Enterprise Panel Tab Content -->
       <TabsContent
@@ -439,7 +678,7 @@ onMounted(() => {
                       dark:text-zinc-400
                     "
                   >
-                    `Disabled` means no global transition page. `Default` lets each short link use `inherit/on/off`. `Force All Links` ignores per-link opt-out.
+                    `Disabled` keeps global transition off. `Default` shows the transition page only for links set to `on`. `Force All Links` ignores per-link opt-out.
                   </p>
                 </div>
                 <select
@@ -470,6 +709,184 @@ onMounted(() => {
                     Force All Links
                   </option>
                 </select>
+              </div>
+
+              <div
+                class="
+                  space-y-4 rounded-xl border border-zinc-100 bg-zinc-50 p-4
+                  dark:border-zinc-800 dark:bg-zinc-950
+                "
+              >
+                <div
+                  class="flex items-center justify-between gap-4"
+                >
+                  <div class="space-y-0.5">
+                    <label
+                      for="enable-tracking" class="
+                        cursor-pointer text-sm font-semibold tracking-wide
+                      "
+                    >Tracking Integrations</label>
+                    <p
+                      class="
+                        text-xs text-zinc-500
+                        dark:text-zinc-400
+                      "
+                    >
+                      Send transition page behavior to GA4, Meta Pixel, and optional LINE LIFF login verification.
+                    </p>
+                  </div>
+                  <button
+                    id="enable-tracking"
+                    type="button"
+                    role="switch"
+                    :aria-checked="trackingEnabled"
+                    :disabled="loading"
+                    class="
+                      relative inline-flex h-6 w-11 shrink-0 cursor-pointer
+                      rounded-full border-2 border-transparent transition-colors
+                      duration-200 ease-in-out
+                      focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2
+                      focus:outline-none
+                      disabled:cursor-not-allowed disabled:opacity-50
+                    "
+                    :class="trackingEnabled ? `
+                      bg-emerald-500
+                      dark:bg-emerald-600
+                    ` : `
+                      bg-zinc-200
+                      dark:bg-zinc-800
+                    `"
+                    @click="trackingEnabled = !trackingEnabled"
+                  >
+                    <span
+                      aria-hidden="true"
+                      class="
+                        pointer-events-none inline-block h-5 w-5 transform
+                        rounded-full bg-white shadow ring-0 transition
+                        duration-200 ease-in-out
+                      "
+                      :class="trackingEnabled ? 'translate-x-5' : `
+                        translate-x-0
+                      `"
+                    />
+                  </button>
+                </div>
+
+                <div
+                  class="
+                    grid grid-cols-1 gap-3
+                    md:grid-cols-2
+                  "
+                >
+                  <div class="space-y-2">
+                    <label class="text-xs font-semibold tracking-wide">GA4 Measurement ID</label>
+                    <input
+                      v-model="gaMeasurementId"
+                      type="text"
+                      class="
+                        w-full rounded-xl border border-zinc-200 bg-white p-3
+                        text-sm
+                        focus:border-emerald-500 focus:ring-2
+                        focus:ring-emerald-500 focus:outline-none
+                        dark:border-zinc-800 dark:bg-zinc-900
+                      "
+                      placeholder="G-XXXXXXXXXX"
+                      :disabled="loading || !trackingEnabled"
+                    >
+                  </div>
+
+                  <div class="space-y-2">
+                    <label class="text-xs font-semibold tracking-wide">Meta Pixel ID</label>
+                    <input
+                      v-model="metaPixelId"
+                      type="text"
+                      class="
+                        w-full rounded-xl border border-zinc-200 bg-white p-3
+                        text-sm
+                        focus:border-emerald-500 focus:ring-2
+                        focus:ring-emerald-500 focus:outline-none
+                        dark:border-zinc-800 dark:bg-zinc-900
+                      "
+                      placeholder="123456789012345"
+                      :disabled="loading || !trackingEnabled"
+                    >
+                  </div>
+
+                  <div class="space-y-2">
+                    <label class="text-xs font-semibold tracking-wide">LINE LIFF ID</label>
+                    <input
+                      v-model="lineLiffId"
+                      type="text"
+                      class="
+                        w-full rounded-xl border border-zinc-200 bg-white p-3
+                        text-sm
+                        focus:border-emerald-500 focus:ring-2
+                        focus:ring-emerald-500 focus:outline-none
+                        dark:border-zinc-800 dark:bg-zinc-900
+                      "
+                      placeholder="1234567890-AbcdEfgh"
+                      :disabled="loading || !trackingEnabled"
+                    >
+                  </div>
+
+                  <div class="space-y-2">
+                    <label class="text-xs font-semibold tracking-wide">LINE Channel ID</label>
+                    <input
+                      v-model="lineChannelId"
+                      type="text"
+                      class="
+                        w-full rounded-xl border border-zinc-200 bg-white p-3
+                        text-sm
+                        focus:border-emerald-500 focus:ring-2
+                        focus:ring-emerald-500 focus:outline-none
+                        dark:border-zinc-800 dark:bg-zinc-900
+                      "
+                      placeholder="1234567890"
+                      :disabled="loading || !trackingEnabled"
+                    >
+                  </div>
+                </div>
+
+                <div
+                  class="
+                    grid grid-cols-1 gap-3
+                    md:grid-cols-2
+                  "
+                >
+                  <label
+                    class="
+                      flex items-center gap-3 rounded-xl border border-zinc-200
+                      bg-white p-3 text-sm
+                      dark:border-zinc-800 dark:bg-zinc-900
+                    "
+                  >
+                    <input
+                      v-model="requireLineLogin"
+                      type="checkbox"
+                      class="h-4 w-4 rounded border-zinc-300 text-emerald-500"
+                      :disabled="loading || !trackingEnabled || !lineLiffId"
+                    >
+                    <span class="font-medium">Require LINE Login before redirect</span>
+                  </label>
+
+                  <div class="space-y-2">
+                    <label class="text-xs font-semibold tracking-wide">Redirect Delay Seconds</label>
+                    <input
+                      v-model.number="redirectDelaySeconds"
+                      type="number"
+                      min="1"
+                      max="30"
+                      class="
+                        w-full rounded-xl border border-zinc-200 bg-white p-3
+                        text-sm
+                        focus:border-emerald-500 focus:ring-2
+                        focus:ring-emerald-500 focus:outline-none
+                        dark:border-zinc-800 dark:bg-zinc-900
+                      "
+                      :disabled="loading"
+                    >
+                  </div>
+                </div>
               </div>
 
               <!-- HTML/Markdown Editor Field -->

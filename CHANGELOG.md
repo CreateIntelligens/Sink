@@ -4,6 +4,93 @@
 
 ---
 
+## 📅 [2026-07-03]
+
+### 📌 4. 短網址支援 LINE / 社群 Open Graph 預覽
+
+### ✅ 變更內容
+
+短網址 route 原本會直接 301/302 到目的地，因此 LINE、Facebook 等預覽 crawler 讀不到 `og:title`、`og:description`、`og:image`。
+
+本次調整 redirect middleware：
+
+* 一般使用者打開短網址時，仍照原本規則 redirect 或顯示 transition page。
+* 社群預覽 crawler 打開短網址時，回傳 200 HTML，內含 OG / Twitter meta。
+* 短網址自己的 `title`、`description`、`image` 優先於 Site SEO；未填時才 fallback 到 `Dashboard -> Settings -> Site SEO`。
+
+---
+
+### 📌 3. 修正 Default Transition Mode 會誤開中轉頁
+
+### ✅ 變更內容
+
+修正 **Global Transition Mode = Default** 的 redirect 判斷：
+
+* 短連結明確設為 `on` 時，才顯示 transition page。
+* 短連結為 `inherit` 或未設定 transition mode 時，直接跳轉。
+* 全域 `Force All Links` 仍會強制所有短連結顯示 transition page。
+
+本次也補上測試，覆蓋 `Default` + link `inherit` 必須直接跳轉的行為，並更新後台與 README 文案。
+
+---
+
+### 📌 2. Site SEO / OG Meta 改為後台可設定
+
+### ✅ 變更內容
+原本全站 `title`、`description`、`og:title`、`og:site_name`、`og:description`、`og:image`、Twitter card 等資訊只吃 `app/app.config.ts` 的硬編碼 fallback，導致部署後無法由使用者自行修改。
+
+本次新增：
+
+* `SeoSettingsSchema`，管理 Site Title、Description、OG Image、OG Site Name。
+* `GET /api/public/settings/seo`，供前台 runtime 讀取 SEO/OG 設定。
+* `POST /api/settings/seo`，供後台儲存 SEO/OG 設定。
+* `Dashboard -> Settings -> Site SEO` 設定頁。
+* `app/app.vue` 改為優先讀 KV 設定，空值才 fallback 到 `app.config.ts`。
+* 移除首頁 `/` 的 prerender，避免 crawler 讀到 build-time 固化的舊 OG meta。
+
+### 💡 使用方式
+進入後台：
+
+`Dashboard -> Settings -> Site SEO`
+
+填入 Site Title、Description、OG / Twitter Image URL、OG Site Name 後儲存即可。
+
+---
+
+### 📌 1. Transition Page 新增 GA4、Meta Pixel 與 LINE LIFF 登入追蹤
+
+### ✅ 變更內容
+中轉頁現在可在跳轉前送出第三方追蹤事件，並支援需要 LINE 身份識別的客戶流程。
+
+本次新增：
+
+* `TrackingSettingsSchema`，管理 GA4、Meta Pixel、LINE LIFF、LINE Channel ID、強制 LINE Login 與跳轉倒數秒數。
+* `GET /api/public/settings/tracking`，供後台與中轉頁讀取追蹤設定。
+* `POST /api/settings/tracking`，供後台儲存追蹤設定。
+* `POST /api/tracking/event`，供中轉頁回報追蹤事件與 LINE ID token。
+* 中轉頁會依設定注入 GA4 `gtag.js`、Meta Pixel、LINE LIFF SDK。
+* LINE LIFF 登入成功後，前端傳送 `liff.getIDToken()`，後端再呼叫 LINE `oauth2/v2.1/verify` 驗證，不直接信任瀏覽器送出的 profile。
+* 中轉頁目的 URL 輸出補上 HTML escaping，避免特殊 URL 破壞頁面結構。
+
+### 💡 使用方式
+進入後台：
+
+`Dashboard -> Settings -> Transition Page -> Tracking Integrations`
+
+可填入：
+
+* **GA4 Measurement ID**：例如 `G-XXXXXXXXXX`。
+* **Meta Pixel ID**：例如 `123456789012345`。
+* **LINE LIFF ID**：例如 `1234567890-AbcdEfgh`。
+* **LINE Channel ID**：LINE Login Channel 的 Channel ID。
+* **Require LINE Login before redirect**：開啟後，訪客需完成 LINE LIFF / LINE Login 授權後才會繼續跳轉。
+* **Redirect Delay Seconds**：中轉頁自動跳轉倒數秒數。
+
+### 🔍 補充說明
+第三方像素追蹤只會在顯示 Transition Page 時執行；如果短網址直接 302 跳轉，瀏覽器不會執行 GA、Meta 或 LIFF SDK。需要 LINE 身份識別的客戶，請在 LINE Developers Console 的 LIFF app scopes 開啟 `openid`，需要基本 profile 時再加 `profile`。
+
+---
+
 ## 📅 [2026-06-29]
 
 ### 📌 1. Dashboard Links 頁面新增短網址總數顯示
@@ -37,7 +124,7 @@
 Transition Page 的全域設定由原本單純的開關，調整為三種模式：
 
 * `Disabled`：全域不啟用 transition page。
-* `Default`：依各短連結自己的 `inherit / on / off` 設定決定是否顯示。
+* `Default`：不全域強制顯示；只有短連結明確設為 `on` 才會顯示。
 * `Force All Links`：強制所有短連結都先進入 transition page，不接受個別短連結關閉。
 
 ### 💡 使用方式

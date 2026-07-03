@@ -1,7 +1,64 @@
 import type { LinkSchema } from '@@/schemas/link'
 import type { z } from 'zod'
-import { TransitionSettingsSchema } from '@@/schemas/settings'
+import { SeoSettingsSchema, TrackingSettingsSchema, TransitionSettingsSchema } from '@@/schemas/settings'
 import { parsePath, withQuery } from 'ufo'
+
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+function isSocialPreviewCrawler(userAgent: string) {
+  return /facebookexternalhit|facebot|twitterbot|slackbot|discordbot|telegrambot|whatsapp|linkedinbot|pinterest|skypeuripreview|line/i.test(userAgent)
+}
+
+function renderSocialPreviewHtml(params: {
+  title: string
+  description: string
+  image: string
+  siteName: string
+  url: string
+  target: string
+}) {
+  const title = escapeHtml(params.title)
+  const description = escapeHtml(params.description)
+  const image = escapeHtml(params.image)
+  const siteName = escapeHtml(params.siteName)
+  const url = escapeHtml(params.url)
+  const target = escapeHtml(params.target)
+  const twitterCard = image ? 'summary_large_image' : 'summary'
+  const imageMeta = image
+    ? `<meta property="og:image" content="${image}">
+  <meta name="twitter:image" content="${image}">`
+    : ''
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>${title}</title>
+  <link rel="canonical" href="${url}">
+  <meta name="description" content="${description}">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="${title}">
+  <meta property="og:description" content="${description}">
+  <meta property="og:site_name" content="${siteName}">
+  <meta property="og:url" content="${url}">
+  ${imageMeta}
+  <meta name="twitter:card" content="${twitterCard}">
+  <meta name="twitter:title" content="${title}">
+  <meta name="twitter:description" content="${description}">
+</head>
+<body>
+  <p><a href="${target}">${target}</a></p>
+</body>
+</html>`
+}
 
 export default eventHandler(async (event) => {
   const { pathname: slug } = parsePath(event.path.replace(/^\/|\/$/g, '')) // remove leading and trailing slashes
@@ -40,13 +97,35 @@ export default eventHandler(async (event) => {
       }
       const target = redirectWithQuery ? withQuery(link.url, getQuery(event)) : link.url
 
+      if (isSocialPreviewCrawler(getHeader(event, 'user-agent') || '')) {
+        const seo = SeoSettingsSchema.parse(await KV.get('setting:seo', { type: 'json' }) || {})
+        const requestURL = getRequestURL(event)
+        const title = link.title || link.comment || seo.title || seo.siteName || slug
+        const description = link.description || link.comment || seo.description || target
+        const image = link.image || seo.image || ''
+        const siteName = seo.siteName || seo.title || requestURL.hostname
+
+        setHeader(event, 'Content-Type', 'text/html; charset=utf-8')
+        setHeader(event, 'Cache-Control', 'public, max-age=300')
+        return renderSocialPreviewHtml({
+          title,
+          description,
+          image,
+          siteName,
+          url: requestURL.href,
+          target,
+        })
+      }
+
       const globalTransition = TransitionSettingsSchema.parse(await KV.get('setting:transition', { type: 'json' }) || {})
       const showTransition = globalTransition.mode === 'force'
         || link.transitionMode === 'on'
-        || (link.transitionMode !== 'off' && globalTransition.mode === 'inherit')
 
       if (showTransition) {
         const transitionContent = link.transitionHtml || globalTransition.content
+        const tracking = TrackingSettingsSchema.parse(await KV.get('setting:tracking', { type: 'json' }) || {})
+        const redirectDelaySeconds = tracking.redirectDelaySeconds
+        const safeTarget = escapeHtml(target)
         const customHtmlContent = transitionContent
           ? `<div class="w-full text-slate-800 dark:text-slate-100">${transitionContent}</div>`
           : `
@@ -69,6 +148,28 @@ export default eventHandler(async (event) => {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Redirecting... | Sink</title>
+  ${tracking.enabled && tracking.gaMeasurementId
+    ? `<script async src="https://www.googletagmanager.com/gtag/js?id=${escapeHtml(tracking.gaMeasurementId)}"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', ${JSON.stringify(tracking.gaMeasurementId)}, { send_page_view: false });
+  </script>`
+    : ''}
+  ${tracking.enabled && tracking.metaPixelId
+    ? `<script>
+    !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+    n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
+    n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
+    t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}
+    (window, document,'script','https://connect.facebook.net/en_US/fbevents.js');
+    fbq('init', ${JSON.stringify(tracking.metaPixelId)});
+  </script>`
+    : ''}
+  ${tracking.enabled && tracking.lineLiffId
+    ? '<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>'
+    : ''}
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -99,7 +200,7 @@ export default eventHandler(async (event) => {
     
     <div class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 p-4 rounded-xl text-center">
       <p class="text-sm text-slate-500 dark:text-slate-400 mb-1">Destination URL</p>
-      <a href="${target}" id="target-link" class="text-emerald-500 font-medium hover:underline break-all block max-h-20 overflow-y-auto">${target}</a>
+      <a href="${safeTarget}" id="target-link" class="text-emerald-500 font-medium hover:underline break-all block max-h-20 overflow-y-auto">${safeTarget}</a>
     </div>
 
     <div class="w-full flex flex-col items-center space-y-4">
@@ -107,13 +208,13 @@ export default eventHandler(async (event) => {
         Redirecting in <span id="countdown" class="font-bold text-slate-800 dark:text-slate-100 text-lg">5</span> seconds...
       </div>
       <div class="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
-        <div class="bg-emerald-500 h-full progress-bar"></div>
+        <div class="bg-emerald-500 h-full progress-bar" style="animation-duration: ${redirectDelaySeconds}s"></div>
       </div>
       <div class="flex space-x-3 w-full pt-2">
         <button onclick="stopRedirect()" id="btn-stop" class="flex-1 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 font-medium rounded-xl text-sm transition">
           Stop Redirect
         </button>
-        <a href="${target}" class="flex-1 px-4 py-2.5 bg-emerald-500 hover:opacity-90 text-white font-medium rounded-xl text-sm transition text-center flex items-center justify-center">
+        <a href="${safeTarget}" id="btn-redirect-now" class="flex-1 px-4 py-2.5 bg-emerald-500 hover:opacity-90 text-white font-medium rounded-xl text-sm transition text-center flex items-center justify-center">
           Redirect Now
         </a>
       </div>
@@ -121,26 +222,131 @@ export default eventHandler(async (event) => {
   </div>
 
   <script>
-    let countdown = 5;
+    const trackingConfig = ${JSON.stringify({
+      enabled: tracking.enabled,
+      gaMeasurementId: tracking.gaMeasurementId,
+      metaPixelId: tracking.metaPixelId,
+      lineLiffId: tracking.lineLiffId,
+      requireLineLogin: tracking.requireLineLogin,
+      slug: link.slug,
+      target,
+      redirectDelaySeconds,
+    })};
+    let countdown = trackingConfig.redirectDelaySeconds || 5;
     const countdownEl = document.getElementById('countdown');
     const target = ${JSON.stringify(target)};
-    let timer = setInterval(() => {
+    const redirectNowButton = document.getElementById('btn-redirect-now');
+    const targetLink = document.getElementById('target-link');
+    let timer;
+    let stopped = false;
+
+    countdownEl.innerText = countdown;
+
+    function postTrackingEvent(eventName, lineIdToken) {
+      if (!trackingConfig.enabled) return Promise.resolve();
+
+      const payload = JSON.stringify({
+        event: eventName,
+        slug: trackingConfig.slug,
+        target: trackingConfig.target,
+        lineIdToken: lineIdToken || undefined,
+      });
+
+      if (navigator.sendBeacon && !lineIdToken) {
+        navigator.sendBeacon('/api/tracking/event', new Blob([payload], { type: 'application/json' }));
+      }
+      else {
+        return fetch('/api/tracking/event', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: payload,
+          keepalive: true,
+        }).catch(() => {});
+      }
+
+      return Promise.resolve();
+    }
+
+    function trackPixel(eventName) {
+      if (!trackingConfig.enabled) return;
+      if (window.gtag && trackingConfig.gaMeasurementId) {
+        gtag('event', eventName, {
+          event_category: 'shortlink',
+          link_slug: trackingConfig.slug,
+          transport_type: 'beacon',
+        });
+      }
+      if (window.fbq && trackingConfig.metaPixelId) {
+        fbq('trackCustom', 'ShortlinkRedirect', {
+          event_name: eventName,
+          link_slug: trackingConfig.slug,
+        });
+      }
+    }
+
+    async function trackEvent(eventName, lineIdToken) {
+      trackPixel(eventName);
+      await postTrackingEvent(eventName, lineIdToken);
+    }
+
+    async function prepareLineLogin() {
+      if (!trackingConfig.enabled || !trackingConfig.lineLiffId || !window.liff) return;
+
+      try {
+        await liff.init({ liffId: trackingConfig.lineLiffId });
+        if (trackingConfig.requireLineLogin && !liff.isLoggedIn()) {
+          liff.login({ redirectUri: window.location.href });
+          return new Promise(() => {});
+        }
+
+        if (liff.isLoggedIn()) {
+          const lineIdToken = liff.getIDToken ? liff.getIDToken() : '';
+          if (lineIdToken) await trackEvent('line_login_success', lineIdToken);
+        }
+      }
+      catch (error) {
+        await trackEvent('line_login_error');
+      }
+    }
+
+    function startCountdown() {
+      timer = setInterval(async () => {
       countdown--;
       countdownEl.innerText = countdown;
       if (countdown <= 0) {
         clearInterval(timer);
+        await trackEvent('redirect_auto');
         window.location.href = target;
       }
-    }, 1000);
+      }, 1000);
+    }
+
+    async function goNow(event) {
+      if (event) event.preventDefault();
+      clearInterval(timer);
+      await trackEvent('redirect_now');
+      window.location.href = target;
+    }
 
     function stopRedirect() {
+      stopped = true;
       clearInterval(timer);
       const progressBar = document.querySelector('.progress-bar');
       if (progressBar) progressBar.style.animationPlayState = 'paused';
       const countdownParent = countdownEl.parentElement;
       countdownParent.innerHTML = 'Auto-redirect stopped.';
       document.getElementById('btn-stop').style.display = 'none';
+      trackEvent('redirect_stopped');
     }
+
+    redirectNowButton.addEventListener('click', goNow);
+    targetLink.addEventListener('click', goNow);
+
+    (async () => {
+      await trackEvent('transition_view');
+      await prepareLineLogin();
+      if (!stopped) startCountdown();
+    })();
   </script>
 </body>
 </html>
