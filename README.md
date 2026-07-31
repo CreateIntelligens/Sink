@@ -69,6 +69,27 @@ pnpm dev
 
 ---
 
+## 🔁 隨機短網址重複使用與資料 migration
+
+系統以完整目的網址字串比對重複連結；`https://example.com` 與 `https://example.com/`、不同 query 或 fragment 都視為不同網址。
+
+- 從 Dashboard 按隨機按鈕建立的 slug 會標記為隨機 slug；同一目的網址會回傳最早建立的短網址。
+- 手動輸入或 AI 產生的 slug 會標記為自訂 slug；自訂 slug 可與其他連結共用目的網址。
+
+既有資料沒有這個標記與網址索引。先透過 `pnpm wrangler login` 登入 Cloudflare，接著執行 dry run：
+
+```bash
+CLOUDFLARE_ACCOUNT_ID="<account-id>" pnpm migrate:link-index -- --wrangler
+```
+
+確認輸出筆數後，加入 `--apply` 才會寫入。migration 會把所有未標記的歷史連結當成隨機 slug、保留其原有 metadata／到期日，並為每個目的網址選擇最早建立的短網址作為重複使用結果。
+
+```bash
+CLOUDFLARE_ACCOUNT_ID="<account-id>" pnpm migrate:link-index -- --wrangler --apply
+```
+
+---
+
 ## 🧭 Transition Page 用法
 
 Transition Page 是短連結在真正跳轉前的中介頁。它適合拿來放：

@@ -69,6 +69,59 @@ describe.sequential('/api/link/create', () => {
     expect(duplicateResponse.status).toBe(409)
   })
 
+  it('reuses the first random short link for the same URL', async () => {
+    const firstPayload = {
+      url: 'https://example.com/reuse-random-link',
+      slug: 'randomreuseone',
+      isCustomSlug: false,
+    }
+    const secondPayload = {
+      ...firstPayload,
+      slug: 'randomreusetwo',
+    }
+
+    const firstResponse = await fetchWithAuth('/api/link/create', {
+      method: 'POST',
+      body: JSON.stringify(firstPayload),
+      headers: { 'Content-Type': 'application/json' },
+    })
+    expect(firstResponse.status).toBe(201)
+
+    const secondResponse = await fetchWithAuth('/api/link/create', {
+      method: 'POST',
+      body: JSON.stringify(secondPayload),
+      headers: { 'Content-Type': 'application/json' },
+    })
+    expect(secondResponse.status).toBe(200)
+    expect((await secondResponse.json()).link.slug).toBe(firstPayload.slug)
+  })
+
+  it('allows custom slugs to share the same URL', async () => {
+    const firstPayload = {
+      url: 'https://example.com/custom-slug-link',
+      slug: 'customslugone',
+      isCustomSlug: true,
+    }
+    const secondPayload = {
+      ...firstPayload,
+      slug: 'customslugtwo',
+    }
+
+    const firstResponse = await fetchWithAuth('/api/link/create', {
+      method: 'POST',
+      body: JSON.stringify(firstPayload),
+      headers: { 'Content-Type': 'application/json' },
+    })
+    const secondResponse = await fetchWithAuth('/api/link/create', {
+      method: 'POST',
+      body: JSON.stringify(secondPayload),
+      headers: { 'Content-Type': 'application/json' },
+    })
+
+    expect(firstResponse.status).toBe(201)
+    expect(secondResponse.status).toBe(201)
+  })
+
   it('returns 401 when accessing without auth', async () => {
     const response = await fetch('/api/link/create', {
       method: 'POST',

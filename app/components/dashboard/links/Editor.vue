@@ -20,6 +20,7 @@ const emit = defineEmits(['update:link'])
 const { t } = useI18n()
 const link = ref(props.link)
 const dialogOpen = ref(false)
+const generatedSlug = ref('')
 
 const isEdit = !!props.link.id
 
@@ -31,6 +32,7 @@ const EditLinkSchema = LinkSchema.pick({
     id: true,
     url: true,
     slug: true,
+    isCustomSlug: true,
     createdAt: true,
     updatedAt: true,
     title: true,
@@ -200,7 +202,9 @@ watch(() => [
 }, { deep: true })
 
 function randomSlug() {
-  form.setFieldValue('slug', nanoid()())
+  const slug = nanoid()()
+  generatedSlug.value = slug
+  form.setFieldValue('slug', slug)
 }
 
 const aiSlugPending = ref(false)
@@ -230,9 +234,10 @@ onMounted(() => {
 })
 
 async function onSubmit(formData) {
-  const link = {
+  const linkPayload = {
     url: formData.url,
     slug: formData.slug,
+    isCustomSlug: isEdit ? (link.value.isCustomSlug ?? false) : formData.slug !== generatedSlug.value,
     ...(formData.optional || []),
     transitionMode: formData.optional?.transitionMode || 'inherit',
     transitionHtml: formData.optional?.transitionHtml || '',
@@ -240,7 +245,7 @@ async function onSubmit(formData) {
   }
   const { link: newLink } = await useAPI(isEdit ? '/api/link/edit' : '/api/link/create', {
     method: isEdit ? 'PUT' : 'POST',
-    body: link,
+    body: linkPayload,
   })
   dialogOpen.value = false
   emit('update:link', newLink, isEdit ? 'edit' : 'create')
