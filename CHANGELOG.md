@@ -14,6 +14,7 @@
 * 手動輸入或 AI 生成的 slug 會標記為自訂 slug，與隨機 slug 分流，仍可共用同一目的網址。
 * 新增 KV 網址索引，並在建立、編輯、刪除時維護索引一致性。
 * 新增 `migrate:link-index`，可透過 Wrangler OAuth 將所有未標記的歷史資料標為隨機 slug，並建立網址索引。
+* 升級步驟、驗證方式與回復注意事項請見[隨機短網址重複使用升級教學](docs/deployment/random-link-reuse-upgrade.md)。
 
 ---
 
