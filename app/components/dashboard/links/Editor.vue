@@ -65,6 +65,10 @@ const fieldConfig = {
       label: 'Transition Page HTML',
       description: 'Custom HTML to display on the transition page (e.g. advertisements, safety notices, or site info).',
     },
+    ogMode: {
+      label: 'OG Preview Mode',
+      description: 'Choose social preview mode. "Inherit" follows global setting; "Custom" serves custom OG tags; "Passthrough" redirects crawlers to original URL for target OG.',
+    },
     utm_source: {
       label: 'UTM Source',
       description: 'e.g., google, newsletter4',
@@ -126,6 +130,7 @@ const form = useForm({
       comment: link.value.comment,
       transitionMode: link.value.transitionMode || 'inherit',
       transitionHtml: link.value.transitionHtml || '',
+      ogMode: link.value.ogMode || 'inherit',
       ...getInitialUTMs(link.value.url),
     },
   },
@@ -241,6 +246,7 @@ async function onSubmit(formData) {
     ...(formData.optional || []),
     transitionMode: formData.optional?.transitionMode || 'inherit',
     transitionHtml: formData.optional?.transitionHtml || '',
+    ogMode: formData.optional?.ogMode || 'inherit',
     expiration: formData.optional?.expiration ? date2unix(formData.optional?.expiration, 'end') : undefined,
   }
   const { link: newLink } = await useAPI(isEdit ? '/api/link/edit' : '/api/link/create', {
