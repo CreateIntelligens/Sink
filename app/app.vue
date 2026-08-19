@@ -25,8 +25,17 @@ useHead({
       content: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0',
       tagPosition: 'head',
     },
+    {
+      name: 'model-context-protocol',
+      content: '/mcp',
+    },
   ],
   link: [
+    {
+      rel: 'model-context',
+      type: 'application/json',
+      href: '/mcp',
+    },
     {
       rel: 'icon',
       type: 'image/png',
@@ -35,6 +44,13 @@ useHead({
     {
       rel: 'apple-touch-icon',
       href: '/apple-touch-icon.png',
+    },
+  ],
+  script: [
+    {
+      'type': 'module',
+      'src': '/.webmcp/bridge.js',
+      'data-mcp-url': '/mcp',
     },
   ],
 })
