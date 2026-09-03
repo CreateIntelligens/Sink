@@ -6,6 +6,18 @@
 
 ## 📅 [2026-09-03]
 
+### 📌 儀表板執行期錯誤與即時分析修復 (Fix Dashboard 404 & Realtime Globe)
+
+* **修復 `/dashboard/links` 拋出 404 錯誤**：
+  * 在 [`app/components/dashboard/links/Editor.vue`](file:///Users/david/git/tbdavid2019/sinkurl/app/components/dashboard/links/Editor.vue) 中移除 JavaScript SFC `<script setup>` 內非法的 `<string | undefined>` TypeScript 泛型語法，避免瀏覽器將其視為變數比較運算並拋出 `ReferenceError: string is not defined` 導致 Nuxt 渲染 404 錯誤頁。
+* **修復 `/dashboard/realtime` 3D 地球儀與即時日誌空白崩潰**：
+  * 重建並補回遺失之 [`server/api/logs/events.get.ts`](file:///Users/david/git/tbdavid2019/sinkurl/server/api/logs/events.get.ts) 與 [`server/api/logs/locations.get.ts`](file:///Users/david/git/tbdavid2019/sinkurl/server/api/logs/locations.get.ts) 統計端點，並加入安全查詢與錯誤攔截。
+  * 在 [`app/components/dashboard/realtime/Globe.vue`](file:///Users/david/git/tbdavid2019/sinkurl/app/components/dashboard/realtime/Globe.vue) 與 [`Logs.vue`](file:///Users/david/git/tbdavid2019/sinkurl/app/components/dashboard/realtime/Logs.vue) 加入 `try/catch` 容錯防護，即使 Analytics 資料集暫無數據也不會中斷 3D 地球儀初始化渲染。
+* **客戶端 `/dashboard` 路由補齊**：
+  * 新增 [`app/pages/dashboard/index.vue`](file:///Users/david/git/tbdavid2019/sinkurl/app/pages/dashboard/index.vue)，確保客戶端導航存取 `/dashboard` 時能正確跳轉至 `/dashboard/links`。
+
+---
+
 ### 📌 全面安全性稽核與漏洞修復 (Security Audit Remediation)
 
 經過 Cloudflare `security-audit-skill` 6 階段深度稽核，全面修復發現的高風險與中風險安全弱點：
@@ -53,14 +65,14 @@
   6. `get_service_info`：查詢 Sink 服務狀態、版本與 WebMCP 特性能力。
 * **WebMCP 瀏覽器端原生支援**：
   * **HTML Head 探索標籤**：新增 `<link rel="model-context" href="/mcp">` 與 `<meta name="model-context-protocol" content="/mcp">`。
-  * **Nuxt 4 Client Plugin**：新增 [app/plugins/webmcp.client.ts](file:///Users/david/Documents/git-360/Sink/app/plugins/webmcp.client.ts)，當 Chrome 146+ 或 Cloudflare BrowserRun 啟用 `document.modelContext` / `navigator.modelContext` 時，自動向瀏覽器註冊工具。
-  * **獨立 Bridge 腳本**：新增 [public/.webmcp/bridge.js](file:///Users/david/Documents/git-360/Sink/public/.webmcp/bridge.js) 橋接腳本（相容 ES Module 腳本中 `document.currentScript` 為 null 之情境，並具備精確選取器與 `/mcp` fallback），相容 Cloudflare WebMCP 邊緣注入與外部網頁嵌入。
+  * **Nuxt 4 Client Plugin**：新增 [app/plugins/webmcp.client.ts](file:///Users/david/Documents/git/tbdavid2019/sinkurl/app/plugins/webmcp.client.ts)，當 Chrome 146+ 或 Cloudflare BrowserRun 啟用 `document.modelContext` / `navigator.modelContext` 時，自動向瀏覽器註冊工具。
+  * **獨立 Bridge 腳本**：新增 [public/.webmcp/bridge.js](file:///Users/david/Documents/git/tbdavid2019/sinkurl/public/.webmcp/bridge.js) 橋接腳本（相容 ES Module 腳本中 `document.currentScript` 為 null 之情境，並具備精確選取器與 `/mcp` fallback），相容 Cloudflare WebMCP 邊緣注入與外部網頁嵌入。
 * **雙路由端點架構**：統一由 `server/utils/mcp.ts` 導出 `handleMcpEvent`，供 `/mcp`（WebMCP 預設探索路徑）與 `/api/mcp`（標準 API 客戶端）共用並標註明確註解說明。
 * **安全與權限隔離**：
   * 公開查詢與快速縮短支援無障礙調用。
   * 管理類 Tools（列表、刪除、統計數據）支援透過 HTTP `Authorization: Bearer <token>` 或 Tool 參數 `token` 進行多層次授權驗證。
-* **保留路由更新**：於 [app/app.config.ts](file:///Users/david/Documents/git-360/Sink/app/app.config.ts) 的 `reserveSlug` 補上 `mcp`、`.webmcp` 與 `api`，避免短網址路由衝突。
-* **測試覆蓋**：新增 [tests/mcp.spec.ts](file:///Users/david/Documents/git-360/Sink/tests/mcp.spec.ts)，完整覆蓋 MCP 初始化、工具清單、工具調用、未授權阻擋、Bearer 授權執行與刪除流程（12 個測試全數通過）。
+* **保留路由更新**：於 [app/app.config.ts](file:///Users/david/Documents/git/tbdavid2019/sinkurl/app/app.config.ts) 的 `reserveSlug` 補上 `mcp`、`.webmcp` 與 `api`，避免短網址路由衝突。
+* **測試覆蓋**：新增 [tests/mcp.spec.ts](file:///Users/david/Documents/git/tbdavid2019/sinkurl/tests/mcp.spec.ts)，完整覆蓋 MCP 初始化、工具清單、工具調用、未授權阻擋、Bearer 授權執行與刪除流程（11 個測試全數通過）。
 
 ---
 
@@ -80,19 +92,51 @@
 
 ---
 
-## 📅 [2026-07-31]
+## 📅 [2026-07-30]
 
 ### 📌 隨機短網址重複使用與歷史資料 migration
 
 ### ✅ 變更內容
 
-* 同一完整目的網址再次以隨機 slug 建立時，會回傳最早建立的既有短網址，不再產生重複連結。
-* 手動輸入或 AI 生成的 slug 會標記為自訂 slug，與隨機 slug 分流，仍可共用同一目的網址。
-* 新增 KV 網址索引，並在建立、編輯、刪除時維護索引一致性。
-* 新增 `migrate:link-index`，可透過 Wrangler OAuth 將所有未標記的歷史資料標為隨機 slug，並建立網址索引。
+* 新增 `isCustomSlug` 標記，區分隨機 slug 與自訂 slug。
+* 相同完整目的網址以隨機 slug 建立時，系統會回傳最早建立的既有短網址，不再重複產生新短碼。
+* 手動輸入或 AI 產生的自訂 slug 可繼續指向相同目的網址，不受重複使用規則限制。
+* 新增網址反向索引，並在建立、編輯、刪除及 upsert 時同步維護。
+* 新增 `pnpm migrate:link-index`：將所有無標記歷史連結視為隨機 slug，補上 `isCustomSlug: false` 與網址索引；預設 dry run，需加上 `--apply` 才會寫入 KV。
 * 升級步驟、驗證方式與回復注意事項請見[隨機短網址重複使用升級教學](docs/deployment/random-link-reuse-upgrade.md)。
 
+### 💡 部署前後注意事項
+
+1. 先部署程式碼，再依 README 的指令執行 migration。
+2. migration 使用的 Cloudflare API Token 需具備 `Workers KV Storage Read` 和 `Workers KV Storage Write` 權限。
+3. Cloudflare KV 為最終一致性儲存，migration 寫入後跨地區快取最多可能需要約 60 秒才完全反映。
+
 ---
+
+## 📅 [2026-07-14]
+
+### 📌 6. 修正全站 OG / SEO Meta 標籤與社群預覽圖
+
+### ✅ 變更內容
+
+修復 OG 分數 37/100 的多項 SEO 問題，包含社群預覽與搜尋引擎索引最佳化：
+
+* **修正 OG Image 過小問題**：預設 OG 圖片從 `https://blog.david888.com/banner.png` (404) 改為 `/banner.png` (本地 2400×1260px，部署於 `https://glsoft.ai/banner.png`)；Dashboard 後台設定的 OG Image 若指向 SVG logo (94×23px) 需手動更新。
+* **補齊遺漏的 OG / Twitter 標籤**：`og:url`、`og:locale` (zh_TW)、`og:image:width` (1200)、`og:image:height` (630)、`og:image:alt`、`twitter:site` (@oobwei)，同時寫入 `app/app.vue` 與 `app/pages/index.vue`。
+* **新增 SEO 實用標籤**：`<link rel="canonical">`、`<link rel="manifest">`、`<meta name="theme-color">` (#10b981)、32×32 PNG favicon、SVG favicon、JSON-LD 結構化資料 (WebSite Schema)。
+* **修正預設 Description 過長**：`app/app.config.ts` description 從 `'短網址'` 改為完整描述 (`'Sink - 快速短網址服務，支援自訂短網址、訪問分析與團隊管理'`)，Dashboard 後台設定若仍為舊值需手動更新。
+* **Loading 狀態補上 H1**：首頁載入中狀態新增 `<h1>` 標籤，讓搜尋引擎爬蟲能讀到頁面主題。
+
+### 💡 部署後手動設定
+部署後請進入 `Dashboard -> Settings -> Site SEO`，確認以下欄位：
+
+* **OG Image URL** → `https://glsoft.ai/banner.png`
+* **Description** → 建議 110–160 字元的簡短描述
+* **Site Title** → 建議 `glsoft.ai` 或 `Sink`
+
+---
+
+
 
 ## 📅 [2026-07-08]
 
