@@ -43,7 +43,7 @@
     "lucide-vue-next": "^0.552.0",
     "marked": "^18.0.5",
     "mysql-bricks": "^2.0.0",
-    "nanoid": "^5.1.6",
+    "nanoid": "^5.1.16",
     "pluralize": "^8.0.0",
     "qr-code-styling": "^1.9.2",
     "reka-ui": "^2.6.0",
@@ -54,7 +54,7 @@
     "virtua": "^0.46.5",
     "vue-sonner": "^2.0.9",
     "vue3-simple-icons": "^15.6.0",
-    "zod": "^3.25.76"
+    "zod": "^4.6.6"
   },
   "devDependencies": {
     "@anatine/zod-mock": "^3.14.0",
@@ -76,14 +76,14 @@
     "eslint-plugin-better-tailwindcss": "^3.7.10",
     "eslint-plugin-format": "^1.0.2",
     "lint-staged": "^16.2.6",
-    "nuxt": "^4.2.0",
+    "nuxt": "^4.6.2",
     "shadcn-nuxt": "^2.3.2",
     "simple-git-hooks": "^2.13.1",
     "tailwind-merge": "^3.3.1",
     "tailwindcss": "^4.1.16",
     "tailwindcss-animate": "^1.0.7",
     "typescript": "^5.9.3",
-    "vitest": "3.2.7",
+    "vitest": "5.0.5",
     "vue-tsc": "^3.1.2",
     "wrangler": "^4.45.3"
   },
